@@ -101,25 +101,22 @@ server <- function(input, output, session) {
     if (input$metric == "species") {
       df <- data_query |>
         group_by(longitude, latitude) |>
-        summarise(raw = n_distinct(species)) |>
+        summarise(N = n_distinct(species)) |>
         ungroup() |>
         collect()
     } else {
       df <- data_query |>
         count(longitude, latitude) |>
-        rename(raw = n) |>
+        rename(N = n) |>
         collect()
     }
 
-    # Compute log-transformed values for the color scheme
-    df$log_n <- log(df$raw)
-
     # Create a raster using the log-transformed values.
-    r <- rast(df[, c("longitude", "latitude", "log_n")],
+    r <- rast(df[, c("longitude", "latitude", "N")],
       type = "xyz", crs = "epsg:4326"
     )
 
-    list(raster = r, raw_values = df$raw)
+    list(raster = r)
   })
 
   # Render initial Leaflet Map
@@ -135,29 +132,24 @@ server <- function(input, output, session) {
     r <- data$raster
     if (!is.null(r)) {
       # Define a palette using the log-transformed raster values.
-      pal <- colorNumeric(viridis(100), domain = values(r), na.color = "transparent")
-
-      # Compute the log-value range from the raster.
-      # log_range <- range(values(r), na.rm = TRUE)
-      # Generate breaks in log-space that fall within the raster's domain.
-      # log_breaks <- pretty(log_range, n = 5)
-      # Exponentiate to get the corresponding raw values for the labels.
-      # raw_breaks <- round(exp(log_breaks))
+      pal <- colorNumeric(viridis(100), domain = log(values(r)), na.color = "transparent")
 
       legend_title <- ifelse(input$metric == "species",
-        "Log Distinct Species Count",
-        "Log Observation Count"
+        "Distinct Species Count",
+        "Observation Count"
       )
 
       leafletProxy("map") %>%
         clearImages() %>%
         clearControls() %>%
-        addRasterImage(r, colors = pal, opacity = 0.8) %>%
+        addRasterImage(r,
+          colors = function(x) pal(log(x)),
+          opacity = 0.8
+        ) %>%
         addLegend(
-          # colors = pal(values(r)),
-          # labels = raw_breaks,
           pal = pal,
-          values = values(r),
+          values = log(values(r)),
+          labFormat = labelFormat(transform = function(x) round(exp(x), 0)),
           title = legend_title,
           opacity = 0.8
         )
