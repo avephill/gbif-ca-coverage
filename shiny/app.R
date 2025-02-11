@@ -49,23 +49,27 @@ class_choices <- c("All", class_choices) # Add "All" option
 
 # Define UI
 ui <- fluidPage(
+  # tags$head(
+  #   tags$link(rel = "stylesheet", type = "text/css", href = "dark_mode.css")
+  # ),
+  includeCSS("www/style.css"),
   titlePanel("GBIF Record Density Map - California"),
   sidebarLayout(
     sidebarPanel(
       selectInput("selected_taxon", "Select Taxonomic Class:",
         choices = class_choices, selected = "Slugs/Snails"
       ),
-      # New toggle to switch between raw observation count and distinct species count
       radioButtons("metric", "Aggregation Metric:",
         choices = c(
           "Raw Observations" = "obs",
           "Distinct Species" = "species"
         ),
         selected = "obs"
-      )
+      ),
+      width = 2 # A small sidebar leaves more space for the map
     ),
     mainPanel(
-      leafletOutput("map", height = "600")
+      leafletOutput("map", height = "85vh", width = "78vw")
     )
   )
 )
@@ -73,8 +77,8 @@ ui <- fluidPage(
 # Define Server
 server <- function(input, output, session) {
   # Reactive function to fetch and aggregate data.
-  # We compute the raw counts (or distinct species counts), then add a log-transformed version for visualization.
-  # Both the raster (using the log-transformed values) and the raw values (for the legend) are returned.
+  # We compute the raw counts (or distinct species counts) and then add a log‑transformed
+  # column for color mapping.
   gbif_raster <- reactive({
     data_query <- db |>
       mutate(
@@ -107,20 +111,18 @@ server <- function(input, output, session) {
         collect()
     }
 
-    # Create a new column with the log-transformed values for the color scheme.
+    # Compute log-transformed values for the color scheme
     df$log_n <- log(df$raw)
 
     # Create a raster using the log-transformed values.
-    # We select only the three required columns: longitude, latitude, and log_n.
     r <- rast(df[, c("longitude", "latitude", "log_n")],
       type = "xyz", crs = "epsg:4326"
     )
 
-    # Return both the raster and the raw values for legend labeling.
-    list(raster = r, raw = df$raw)
+    list(raster = r, raw_values = df$raw)
   })
 
-  # Render Leaflet Map
+  # Render initial Leaflet Map
   output$map <- renderLeaflet({
     leaflet() %>%
       addProviderTiles(providers$CartoDB.Positron) %>%
@@ -131,21 +133,20 @@ server <- function(input, output, session) {
   observe({
     data <- gbif_raster()
     r <- data$raster
-    raw_values <- data$raw
-
     if (!is.null(r)) {
-      # Create a color palette using the log-transformed values.
-      pal <- colorNumeric(viridis(100), values(r), na.color = "transparent")
+      # Define a palette using the log-transformed raster values.
+      pal <- colorNumeric(viridis(100), domain = values(r), na.color = "transparent")
 
-      # Generate legend breaks based on the raw values.
-      raw_range <- range(raw_values, na.rm = TRUE)
-      raw_breaks <- pretty(raw_range, n = 5)
-      # Convert these raw breaks to log scale so they match the color mapping.
-      log_breaks <- log(raw_breaks)
+      # Compute the log-value range from the raster.
+      # log_range <- range(values(r), na.rm = TRUE)
+      # Generate breaks in log-space that fall within the raster's domain.
+      # log_breaks <- pretty(log_range, n = 5)
+      # Exponentiate to get the corresponding raw values for the labels.
+      # raw_breaks <- round(exp(log_breaks))
 
       legend_title <- ifelse(input$metric == "species",
-        "Distinct Species Count",
-        "Observation Count"
+        "Log Distinct Species Count",
+        "Log Observation Count"
       )
 
       leafletProxy("map") %>%
@@ -153,8 +154,10 @@ server <- function(input, output, session) {
         clearControls() %>%
         addRasterImage(r, colors = pal, opacity = 0.8) %>%
         addLegend(
-          colors = pal(log_breaks),
-          labels = raw_breaks,
+          # colors = pal(values(r)),
+          # labels = raw_breaks,
+          pal = pal,
+          values = values(r),
           title = legend_title,
           opacity = 0.8
         )

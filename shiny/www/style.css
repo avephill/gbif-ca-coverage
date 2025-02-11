@@ -1,0 +1,115 @@
+/* style.css */
+
+/* ============================
+   Global Styles
+   ============================ */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  background-color: #f7f9fc;  /* very light blue/gray for a modern look */
+  color: #333;
+}
+
+/* Remove default container padding */
+.container-fluid {
+  padding: 0;
+}
+
+/* ============================
+   Title Panel
+   ============================ */
+h1.title {
+  font-weight: 300;
+  font-size: 2.5em;
+  color: #2c3e50;
+  text-align: center;
+  margin: 20px 0;
+}
+
+/* ============================
+   Sidebar (Well) Styling
+   ============================ */
+/* Shiny’s sidebarPanel renders as a .well by default */
+.well {
+  background-color: #fff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+/* ============================
+   Main Panel & Leaflet Map
+   ============================ */
+.main-panel {
+  padding: 0;
+}
+
+.leaflet-container {
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+/* ============================
+   Form Inputs & Controls
+   ============================ */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-control, .selectize-control {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+/* Style for selectInput dropdown (using selectize) */
+.selectize-input {
+  border-radius: 4px;
+}
+
+/* Radio buttons (and their labels) */
+.radio label {
+  font-weight: 400;
+  margin-right: 15px;
+  font-size: 1em;
+}
+
+/* ============================
+   Buttons (if needed)
+   ============================ */
+.btn {
+  background-color: #3498db;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.btn:hover {
+  background-color: #2980b9;
+}
+
+/* ============================
+   Utility Classes
+   ============================ */
+.mt-20 {
+  margin-top: 20px;
+}
+
+.mb-20 {
+  margin-bottom: 20px;
+}
+
+/* ============================
+   Responsive Tweaks
+   ============================ */
+@media (max-width: 768px) {
+  h1.title {
+    font-size: 2em;
+  }
+}
