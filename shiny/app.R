@@ -12,7 +12,7 @@ library(viridis)
 con <- dbConnect(duckdb(dbdir = "shiny.db"))
 db <- tbl(con, "gbif")
 
-db |> filter(if_any(kingdom:species, ~ . == "Bacteria"))
+# db |> filter(if_any(kingdom:species, ~ . == "Bacteria"))
 
 # Make taxonomy more accessible
 taxonomy <- tibble(
@@ -79,8 +79,13 @@ ui <- fluidPage(
   ),
   # Footer note with data download and author info
   tags$div(
-    style = "text-align: center; font-size: 10px; padding: 10px;",
-    "Data downloaded from GBIF on September 1st, 2024. App by Avery P. Hill, postdoc in the Center for Biodiversity and Community Science at the CalAcademy."
+    style = "text-align: right; font-size: 10px; padding: 10px; padding-right: 3vw;",
+    "Data downloaded from GBIF on September 1st, 2024. App by Avery P. Hill, postdoc in the Center for Biodiversity and Community Science at the CalAcademy. ",
+    tags$a(
+      href = "https://github.com/avephill/gbif-ca-coverage",
+      "(GitHub Repository)",
+      target = "_blank" # Opens the link in a new tab
+    )
   )
 )
 
@@ -164,6 +169,12 @@ server <- function(input, output, session) {
           opacity = 0.8
         )
     }
+  })
+
+  # Close the DuckDB connection when the session ends.
+  session$onSessionEnded(function() {
+    print("Session ended: Closing DuckDB connection.")
+    dbDisconnect(con, shutdown = TRUE)
   })
 }
 
