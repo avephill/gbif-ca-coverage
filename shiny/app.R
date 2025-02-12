@@ -6,7 +6,7 @@ library(dplyr)
 library(dbplyr)
 library(terra)
 library(viridis)
-library(vscDebugger)
+# library(vscDebugger)
 
 # Connect to DuckDB database
 con <- dbConnect(duckdb(dbdir = "shiny.db"))
@@ -53,7 +53,12 @@ ui <- fluidPage(
   #   tags$link(rel = "stylesheet", type = "text/css", href = "dark_mode.css")
   # ),
   includeCSS("www/style.css"),
-  titlePanel("GBIF Record Density Map - California"),
+
+  # Wrap titlePanel in a div with our custom class for left margin
+  div(
+    class = "title-container",
+    titlePanel("GBIF California Coverage")
+  ),
   sidebarLayout(
     sidebarPanel(
       selectInput("selected_taxon", "Select Taxonomic Class:",
@@ -71,6 +76,11 @@ ui <- fluidPage(
     mainPanel(
       leafletOutput("map", height = "85vh", width = "78vw")
     )
+  ),
+  # Footer note with data download and author info
+  tags$div(
+    style = "text-align: center; font-size: 10px; padding: 10px;",
+    "Data downloaded from GBIF on September 1st, 2024. App by Avery P. Hill, postdoc in the Center for Biodiversity and Community Science at the CalAcademy."
   )
 )
 
@@ -135,8 +145,8 @@ server <- function(input, output, session) {
       pal <- colorNumeric(viridis(100), domain = log(values(r)), na.color = "transparent")
 
       legend_title <- ifelse(input$metric == "species",
-        "Distinct Species Count",
-        "Observation Count"
+        "Species / 100 km<sup>2</sup>",
+        "Observations / 100 km<sup>2</sup>"
       )
 
       leafletProxy("map") %>%
