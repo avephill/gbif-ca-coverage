@@ -96,7 +96,6 @@ server <- function(input, output, session) {
   # We compute the raw counts (or distinct species counts) and then add a log‑transformed
   # column for color mapping.
   gbif_raster <- reactive({
-    # TODO fix this so that it's the same grid cell size
     data_query <- db |>
       mutate(
         latitude = round(decimallatitude, 1),
@@ -131,8 +130,7 @@ server <- function(input, output, session) {
     # Create a raster using the log-transformed values.
     r <- rast(df[, c("longitude", "latitude", "N")],
       type = "xyz", crs = "epsg:4326",
-      ext = terra::ext(-124.5, -114, 32.5, 42)#,
-      #resolution = 0.1
+      ext = terra::ext(-124.5, -114, 32.5, 42) # CA extent
     )
 
     list(raster = r)
