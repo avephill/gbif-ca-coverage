@@ -6,6 +6,7 @@ library(dplyr)
 library(dbplyr)
 library(terra)
 library(viridis)
+library(shinycssloaders)
 # library(vscDebugger)
 
 # Connect to DuckDB database
@@ -96,45 +97,59 @@ server <- function(input, output, session) {
   # We compute the raw counts (or distinct species counts) and then add a log‑transformed
   # column for color mapping.
   gbif_raster <- reactive({
-    data_query <- db |>
-      mutate(
-        latitude = round(decimallatitude, 1),
-        longitude = round(decimallongitude, 1)
-      ) |>
-      filter(!is.na(latitude) & !is.na(longitude))
-
-    if (input$selected_taxon != "All") {
-      selected_taxon_level <- taxonomy |>
-        filter(common_name == input$selected_taxon) |>
-        pull(taxon_level)
-      scientific_name <- taxonomy |>
-        filter(common_name == input$selected_taxon) |>
-        pull(taxon_name)
-      data_query <- data_query |>
-        filter(!!sym(selected_taxon_level) == scientific_name)
-    }
-
-    if (input$metric == "species") {
-      df <- data_query |>
-        group_by(longitude, latitude) |>
-        summarise(N = n_distinct(species)) |>
-        ungroup() |>
-        collect()
-    } else {
-      df <- data_query |>
-        count(longitude, latitude) |>
-        rename(N = n) |>
-        collect()
-    }
-
-    # Create a raster using the log-transformed values.
-    r <- rast(df[, c("longitude", "latitude", "N")],
-      type = "xyz", crs = "epsg:4326",
-      ext = terra::ext(-124.5, -114, 32.5, 42) # CA extent
-    )
-
-    list(raster = r)
+    withProgress(message = "Processing GBIF data...", value = 0, {
+      
+      # Step 1: Prepare query and filter out missing data
+      incProgress(0.1, detail = "Preparing and filtering data")
+      data_query <- db |>
+        mutate(
+          latitude = round(decimallatitude, 1),
+          longitude = round(decimallongitude, 1)
+        ) |>
+        filter(!is.na(latitude) & !is.na(longitude))
+      
+      # Step 2: Filter by selected taxonomy if not "All"
+      if (input$selected_taxon != "All") {
+        incProgress(0.1, detail = "Filtering by taxonomic group")
+        selected_taxon_level <- taxonomy |>
+          filter(common_name == input$selected_taxon) |>
+          pull(taxon_level)
+        scientific_name <- taxonomy |>
+          filter(common_name == input$selected_taxon) |>
+          pull(taxon_name)
+        data_query <- data_query |>
+          filter(!!sym(selected_taxon_level) == scientific_name)
+      }
+      
+      # Step 3: Aggregate data based on the selected metric
+      incProgress(0.3, detail = "Aggregating data")
+      if (input$metric == "species") {
+        df <- data_query |>
+          group_by(longitude, latitude) |>
+          summarise(N = n_distinct(species)) |>
+          ungroup() |>
+          collect()
+      } else {
+        df <- data_query |>
+          count(longitude, latitude) |>
+          rename(N = n) |>
+          collect()
+      }
+      
+      # Step 4: Create a raster from the aggregated data using a fixed California extent
+      incProgress(0.3, detail = "Creating raster")
+      r <- rast(df[, c("longitude", "latitude", "N")],
+                type = "xyz", crs = "epsg:4326",
+                ext = terra::ext(-125.5, -114, 31.5, 42.5) # CA extent
+      )
+      
+      # Final step: Wrap up
+      incProgress(0.2, detail = "Finalizing")
+      
+      list(raster = r)
+    })
   })
+  
 
   # Render initial Leaflet Map
   output$map <- renderLeaflet({
