@@ -10,6 +10,7 @@ library(viridis)
 
 # Connect to DuckDB database
 con <- dbConnect(duckdb(dbdir = "shiny.db"))
+con |> dbExecute("SET memory_limit = '750MB';")
 db <- tbl(con, "gbif")
 
 # db |> filter(if_any(kingdom:species, ~ . == "Bacteria"))

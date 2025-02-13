@@ -4,5 +4,7 @@ rsconnect::deployApp("/home/ahill/Projects/random-requests/random-requests/gbif-
   appFiles = c(
     "app.R", "shiny.db", "www/style.css"
   ),
-  appName = "california-gbif-coverage"
+  appName = "california-gbif-coverage",
+  upload = T, # builds on shinyapps.io,
+  forceUpdate = F # updates if available
 )
